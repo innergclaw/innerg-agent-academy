@@ -1,11 +1,12 @@
 # InnerG Agent Academy
 
-Invitation-only beta application for the InnerG Intelligence University 21-Day Agent Builder Challenge.
+Public landing page and founding beta application for the InnerG Intelligence University 21-Day Agent Builder Challenge.
 
 ## Beta access model
 
-- Learners receive email and password credentials from the facilitator.
-- There is no public self-registration.
+- New scholars can create an account from the public academy landing page.
+- Scholars confirm their email before entering the application.
+- Returning scholars use the same access area to sign in.
 - Authentication and saved progress use a dedicated Supabase project.
 - First-time learners complete a five-step scholar orientation before entering the campus.
 - The orientation saves role, focus, readiness, capstone problem, study rhythm, and completion status.
@@ -17,8 +18,8 @@ Invitation-only beta application for the InnerG Intelligence University 21-Day A
 1. Create a dedicated Supabase project for InnerG Agent Academy.
 2. Apply every migration in `supabase/migrations` in timestamp order.
 3. Copy `.env.example` to `.env.local` and add the project URL and publishable key.
-4. Create the ten Cohort 001 learner accounts through the protected admin workflow.
-5. Keep public signup disabled for the founding beta.
+4. Configure the public GitHub Pages URL as an allowed authentication redirect.
+5. Keep facilitator roles protected from browser-side profile edits.
 
 Never place a secret or service-role key in a browser environment variable.
 
