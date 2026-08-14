@@ -1,6 +1,13 @@
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
+  scholar_role text check (scholar_role in ('founder', 'creative', 'educator', 'professional', 'student', 'builder')),
+  primary_focus text,
+  experience_level text not null default 'explorer' check (experience_level in ('explorer', 'operator', 'builder')),
+  capstone_goal text check (char_length(capstone_goal) <= 420),
+  weekly_commitment text not null default 'focused' check (weekly_commitment in ('steady', 'focused', 'intensive')),
+  onboarding_completed boolean not null default false,
+  onboarding_completed_at timestamptz,
   cohort_code text not null default 'COHORT-001',
   role text not null default 'learner' check (role in ('learner', 'facilitator')),
   created_at timestamptz not null default now(),
@@ -31,6 +38,11 @@ create policy "Learners can read their own profile"
 on public.profiles for select
 to authenticated
 using ((select auth.uid()) = id);
+
+create policy "Learners can create their own profile"
+on public.profiles for insert
+to authenticated
+with check ((select auth.uid()) = id and role = 'learner');
 
 create policy "Learners can update their own profile"
 on public.profiles for update

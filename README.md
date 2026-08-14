@@ -7,13 +7,15 @@ Invitation-only beta application for the InnerG Intelligence University 21-Day A
 - Learners receive email and password credentials from the facilitator.
 - There is no public self-registration.
 - Authentication and saved progress use a dedicated Supabase project.
+- First-time learners complete a five-step scholar orientation before entering the campus.
+- The orientation saves role, focus, readiness, capstone problem, study rhythm, and completion status.
 - Row-level security restricts every learner to their own profile and progress.
 - The local prototype includes a preview entrance only when the backend environment is not connected.
 
 ## Connect the academy backend
 
 1. Create a dedicated Supabase project for InnerG Agent Academy.
-2. Run `supabase/migrations/202608140001_agent_academy_beta.sql`.
+2. Apply every migration in `supabase/migrations` in timestamp order.
 3. Copy `.env.example` to `.env.local` and add the project URL and publishable key.
 4. Create the ten Cohort 001 learner accounts through the protected admin workflow.
 5. Keep public signup disabled for the founding beta.

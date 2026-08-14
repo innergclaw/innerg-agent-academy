@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { lessons, levels, type Lesson } from "../data/curriculum";
 import { getSupabaseClient, isSupabaseConfigured } from "../lib/supabase";
+import { ScholarOnboarding, type ScholarProfile } from "./ScholarOnboarding";
 
 type ProgressRow = {
   lesson_day: number;
@@ -194,11 +195,11 @@ function MissionDrawer({ lesson, status, onClose, onComplete }: { lesson: Lesson
   );
 }
 
-function Dashboard({ session, preview, onExit }: { session: Session | null; preview: boolean; onExit: () => void }) {
+function Dashboard({ session, preview, initialProfileName, onExit }: { session: Session | null; preview: boolean; initialProfileName?: string; onExit: () => void }) {
   const supabase = getSupabaseClient();
   const [progress, setProgress] = useState<ProgressRow[]>([]);
   const [selected, setSelected] = useState<Lesson | null>(null);
-  const [profileName, setProfileName] = useState(preview ? "Founding Scholar" : "Scholar");
+  const [profileName, setProfileName] = useState(initialProfileName || (preview ? "Founding Scholar" : "Scholar"));
   const [mobileMenu, setMobileMenu] = useState(false);
 
   useEffect(() => {
@@ -424,6 +425,8 @@ export function AcademyApp() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(Boolean(supabase));
   const [preview, setPreview] = useState(false);
+  const [profileStatus, setProfileStatus] = useState<"checking" | "needed" | "done">("checking");
+  const [profileName, setProfileName] = useState("");
 
   useEffect(() => {
     if (!supabase) return;
@@ -433,18 +436,62 @@ export function AcademyApp() {
     });
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
+      if (!nextSession) {
+        setProfileStatus("checking");
+        setProfileName("");
+      }
       setChecking(false);
     });
     return () => data.subscription.unsubscribe();
   }, [supabase]);
 
-  if (checking) {
+  useEffect(() => {
+    if (!supabase || !session?.user) return;
+    supabase
+      .from("profiles")
+      .select("full_name,onboarding_completed")
+      .eq("id", session.user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setProfileName(data?.full_name || session.user.email?.split("@")[0] || "Scholar");
+        setProfileStatus(data?.onboarding_completed ? "done" : "needed");
+      });
+  }, [session, supabase]);
+
+  async function exitAcademy() {
+    if (supabase && session) await supabase.auth.signOut();
+    setPreview(false);
+    setProfileStatus("checking");
+    setProfileName("");
+  }
+
+  function completeOrientation(profile: ScholarProfile) {
+    setProfileName(profile.full_name);
+    setProfileStatus("done");
+  }
+
+  if (checking || (session && profileStatus === "checking")) {
     return <div className="academy-loading"><Crest /><span>Opening the academy…</span></div>;
   }
 
   if (session || preview) {
-    return <Dashboard session={session} preview={preview} onExit={() => setPreview(false)} />;
+    if (profileStatus !== "done") {
+      return (
+        <ScholarOnboarding
+          session={session}
+          preview={preview}
+          initialName={profileName || session?.user.email?.split("@")[0] || ""}
+          onComplete={completeOrientation}
+          onExit={() => void exitAcademy()}
+        />
+      );
+    }
+    return <Dashboard session={session} preview={preview} initialProfileName={profileName} onExit={() => void exitAcademy()} />;
   }
 
-  return <LoginScreen onPreview={() => setPreview(true)} />;
+  return <LoginScreen onPreview={() => {
+    setProfileName("");
+    setProfileStatus("needed");
+    setPreview(true);
+  }} />;
 }
