@@ -1,13 +1,16 @@
 # InnerG Agent Academy
 
-Public landing page and founding beta application for the InnerG Intelligence University 21-Day Agent Builder Challenge.
+Public landing page and scholar application for the InnerG Intelligence University Agent Academy. The founding cohort runs September 8 to October 6, 2026.
 
-## Beta access model
+## Scholar access model
 
 - New scholars can create an account from the public academy landing page.
 - Scholars confirm their email before entering the application.
 - Returning scholars use the same access area to sign in.
 - Authentication and saved progress use a dedicated Supabase project.
+- Every mission requires written evidence before completion is recorded.
+- Checkpoint examinations require a score of 90% or higher to unlock the next level.
+- Database rules prevent skipped missions and failed checkpoints from being marked complete.
 - First-time learners complete a five-step scholar orientation before entering the campus.
 - The orientation saves role, focus, readiness, capstone problem, study rhythm, and completion status.
 - Row-level security restricts every learner to their own profile and progress.
@@ -19,13 +22,14 @@ Public landing page and founding beta application for the InnerG Intelligence Un
 2. Apply every migration in `supabase/migrations` in timestamp order.
 3. Copy `.env.example` to `.env.local` and add the project URL and publishable key.
 4. Configure the public GitHub Pages URL as an allowed authentication redirect.
-5. Keep facilitator roles protected from browser-side profile edits.
+5. Configure a custom SMTP sender for confirmation and password reset emails.
+6. Keep facilitator roles protected from browser-side profile edits.
 
 Never place a secret or service-role key in a browser environment variable.
 
 ## Course source
 
-The learner path is stored in `src/data/curriculum.ts`. The internal beta blueprint and assessment rubric remain one directory above this application.
+The learner path is stored in `src/data/curriculum.ts`. Checkpoint questions live in `src/data/assessment.ts`, and cohort dates live in `src/data/cohort.ts`.
 
 ## GitHub Pages
 

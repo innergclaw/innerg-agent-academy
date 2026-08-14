@@ -214,6 +214,8 @@ button:active:not(:disabled) { transform: scale(.96); }
 .primary-button:disabled { cursor: wait; opacity: .7; }
 .primary-button b { display: grid; width: 42px; height: 42px; place-items: center; background: rgb(0 0 0 / 16%); border-radius: 2px; }
 .form-message { margin: 14px 0 0; color: var(--red); font-size: 12px; line-height: 1.5; }
+.resend-confirmation { margin-top: 10px; padding: 0 0 3px; color: var(--red); background: transparent; border: 0; border-bottom: 1px solid currentColor; font-size: 11px; font-weight: 800; cursor: pointer; }
+.resend-confirmation:disabled { cursor: wait; opacity: .58; }
 .preview-access { margin-top: 18px; padding: 16px; background: rgb(143 32 28 / 7%); border: 1px solid rgb(143 32 28 / 20%); border-radius: 3px; }
 .preview-access span { color: var(--red); font-family: var(--mono); font-size: 9px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .preview-access p { margin: 7px 0 11px; color: #6f624f; font-size: 11px; line-height: 1.45; }
@@ -605,6 +607,10 @@ button:active:not(:disabled) { transform: scale(.96); }
 .progress-track { height: 6px; overflow: hidden; background: rgb(255 255 255 / 14%); border-radius: 99px; }
 .progress-track i { display: block; height: 100%; background: var(--gold-light); border-radius: inherit; transition: width 520ms var(--ease-out); }
 .credit-card > p { color: var(--paper-2); font-size: 10px; }
+.score-standard { display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; margin-top: 20px; padding-top: 14px; border-top: 1px solid rgb(255 255 255 / 14%); }
+.score-standard span { color: var(--paper-3); font-family: var(--mono); font-size: 7px; letter-spacing: .1em; text-transform: uppercase; }
+.score-standard strong { color: var(--gold-light); font-family: var(--mono); font-size: 10px; }
+.score-standard small { grid-column: 1 / -1; color: var(--paper-2); font-size: 8px; }
 .mini-marks { display: grid; gap: 8px; margin-top: 28px; }
 .mini-marks span { padding-top: 8px; color: var(--paper-3); border-top: 1px solid rgb(255 255 255 / 12%); font-family: var(--mono); font-size: 8px; letter-spacing: .11em; text-transform: uppercase; }
 
@@ -714,6 +720,35 @@ button:active:not(:disabled) { transform: scale(.96); }
 .drawer-action { width: 100%; min-height: 56px; margin-top: 30px; color: var(--white); background: var(--red); border: 0; border-radius: 3px; font-size: 12px; font-weight: 800; cursor: pointer; }
 .drawer-action.locked { color: #796c57; background: #d8cbb5; cursor: not-allowed; }
 .drawer-action.completed { background: var(--green); cursor: default; }
+.mission-submission { display: grid; margin-top: 28px; padding-top: 22px; border-top: 1px solid #cdbb9d; }
+.submission-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 4px; }
+.submission-heading span,
+.checkpoint-questions legend { color: var(--red); font-family: var(--mono); font-size: 9px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+.submission-heading small { color: #82715b; font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
+.mission-submission > label { margin: 17px 0 8px; font-family: var(--mono); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.mission-submission > label span { color: #8c7d67; font-weight: 500; text-transform: none; }
+.mission-submission textarea,
+.mission-submission > input { width: 100%; color: #2c201e; background: rgb(255 252 244 / 74%); border: 1px solid #bca989; border-radius: 3px; outline: none; font: inherit; transition: border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out); }
+.mission-submission textarea { min-height: 132px; padding: 14px; resize: vertical; font-size: 13px; line-height: 1.55; }
+.mission-submission > input { height: 50px; padding: 0 14px; font-size: 13px; }
+.mission-submission textarea:focus,
+.mission-submission > input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgb(143 32 28 / 11%); }
+.evidence-count { display: flex; justify-content: space-between; gap: 16px; padding-top: 6px; color: #8a795f; font-size: 8px; }
+.evidence-count b { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.checkpoint-questions { display: grid; gap: 22px; margin: 28px 0 0; padding: 22px 0 0; border: 0; border-top: 1px solid #cdbb9d; }
+.checkpoint-questions > p { margin: -11px 0 0; color: #77664e; font-size: 10px; line-height: 1.55; }
+.checkpoint-question { display: grid; gap: 8px; }
+.checkpoint-question > strong { font-family: var(--serif); font-size: 16px; font-weight: 600; line-height: 1.35; }
+.checkpoint-question label { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start; padding: 11px 12px; background: rgb(255 252 244 / 45%); border: 1px solid #c9b99d; border-radius: 3px; font-size: 11px; line-height: 1.45; cursor: pointer; }
+.checkpoint-question label.selected { color: #fff8eb; background: var(--red-dark); border-color: var(--red-dark); }
+.checkpoint-question input { margin: 2px 0 0; accent-color: var(--red); }
+.submission-result { margin: 18px 0 0; padding: 12px 14px; color: #7b241f; background: rgb(143 32 28 / 8%); border-left: 3px solid var(--red); font-size: 11px; line-height: 1.5; }
+.submission-result.passed { color: #21483c; background: rgb(33 72 60 / 9%); border-color: var(--green); }
+.mission-complete-state { display: grid; grid-template-columns: 1fr auto; gap: 8px 18px; margin-top: 28px; padding: 20px; color: var(--paper); background: var(--green); border-radius: 4px; }
+.mission-complete-state span { color: #d8c99f; font-family: var(--mono); font-size: 8px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.mission-complete-state strong { color: var(--gold-light); font-family: var(--serif); font-size: 26px; font-weight: 400; }
+.mission-complete-state p { grid-column: 1 / -1; margin: 2px 0 0; font-size: 11px; line-height: 1.55; }
+.mission-complete-state a { grid-column: 1 / -1; color: var(--gold-light); font-size: 10px; font-weight: 800; text-decoration: none; }
 .integrity-note { color: #8d7c64; font-size: 9px; line-height: 1.5; text-align: center; }
 .academy-loading { min-height: 100svh; display: grid; place-content: center; justify-items: center; gap: 25px; color: var(--paper-2); background: var(--ink); font-family: var(--mono); font-size: 9px; letter-spacing: .13em; text-transform: uppercase; }
 
@@ -905,6 +940,7 @@ button:active:not(:disabled) { transform: scale(.96); }
   .academy-rail { grid-template-columns: 1fr; }
   .academy-footer { display: grid; text-align: center; }
   .mission-drawer { padding: 32px 22px; }
+  .drawer-heading { padding-right: 52px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

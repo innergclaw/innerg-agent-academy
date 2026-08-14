@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { cohort } from "../data/cohort";
 import { getSupabaseClient } from "../lib/supabase";
 
 export type ScholarProfile = {
@@ -68,28 +69,28 @@ const experienceOptions = [
 const commitmentOptions = [
   { value: "steady", title: "Steady", note: "3 sessions · 30 minutes" },
   { value: "focused", title: "Focused", note: "5 sessions · 30 minutes" },
-  { value: "intensive", title: "Intensive", note: "5 sessions · 45–60 minutes" },
+  { value: "intensive", title: "Intensive", note: "5 sessions · 45 to 60 minutes" },
 ] as const;
 
 const roadmap = [
   {
     level: "I",
     name: "Operator",
-    days: "Days 01–07",
+    days: "Days 01 to 07",
     promise: "Direct intelligence with clarity.",
     proof: ["Outcome Contract", "Context Pack", "Workflow Map", "Operator Examination"],
   },
   {
     level: "II",
     name: "Builder",
-    days: "Days 08–14",
+    days: "Days 08 to 14",
     promise: "Assemble and test the workflow.",
     proof: ["Tool Map", "Working Agent", "Memory Rules", "Builder Examination"],
   },
   {
     level: "III",
     name: "Architect",
-    days: "Days 15–21",
+    days: "Days 15 to 21",
     promise: "Design a dependable system.",
     proof: ["System Specification", "Evaluation Set", "Risk Review", "Final Defense"],
   },
@@ -155,7 +156,7 @@ export function ScholarOnboarding({ session, preview, initialName, onComplete, o
 
     setSaving(false);
     if (error || !data?.onboarding_completed) {
-      setMessage("Your profile could not be confirmed yet. Nothing was lost—please try once more.");
+      setMessage("Your profile could not be confirmed yet. Nothing was lost. Please try once more.");
       return;
     }
     onComplete(profile);
@@ -195,7 +196,7 @@ export function ScholarOnboarding({ session, preview, initialName, onComplete, o
 
       <section className="orientation-workspace">
         <header className="orientation-header">
-          <div><span>Founding Beta</span><strong>Cohort 001 · Scholar Orientation</strong></div>
+          <div><span>{cohort.label}</span><strong>{cohort.code} · {cohort.shortRange}</strong></div>
           <button type="button" onClick={onExit}>Exit safely</button>
         </header>
 
@@ -205,7 +206,7 @@ export function ScholarOnboarding({ session, preview, initialName, onComplete, o
               <section className="orientation-intro" aria-labelledby="orientation-title">
                 <p className="orientation-kicker">Welcome to the academy</p>
                 <h1 id="orientation-title">Before the tools,<br /><em>build your direction.</em></h1>
-                <p className="orientation-lead">This short orientation turns the next 21 days into your path—not a pile of lessons. You will name who you are, where you are starting, and what you intend to build.</p>
+                <p className="orientation-lead">This short orientation turns the next 21 days into your path. You will name who you are, where you are starting, and what you intend to build.</p>
                 <div className="orientation-principles">
                   <article><span>01</span><div><strong>One real problem</strong><p>Carry a useful challenge from Day 01 through your final defense.</p></div></article>
                   <article><span>02</span><div><strong>Evidence every week</strong><p>Produce work that can be reviewed, tested, and improved.</p></div></article>
@@ -255,7 +256,7 @@ export function ScholarOnboarding({ session, preview, initialName, onComplete, o
               <section aria-labelledby="readiness-title">
                 <p className="orientation-kicker">Step 02 · Readiness</p>
                 <h1 id="readiness-title">Start honest.<br /><em>Grow on purpose.</em></h1>
-                <p className="orientation-lead">Choose the statement that feels most accurate today. Your baseline changes the guidance—not the standards or the levels you complete.</p>
+                <p className="orientation-lead">Choose the statement that feels most accurate today. Your baseline changes the guidance, but the standards remain the same for every scholar.</p>
                 <div className="experience-list">
                   {experienceOptions.map((option, index) => (
                     <button type="button" className={profile.experience_level === option.value ? "experience-card selected" : "experience-card"} aria-pressed={profile.experience_level === option.value} onClick={() => updateProfile("experience_level", option.value)} key={option.value}>
@@ -273,7 +274,7 @@ export function ScholarOnboarding({ session, preview, initialName, onComplete, o
               <section aria-labelledby="mission-setup-title">
                 <p className="orientation-kicker">Step 03 · Your mission</p>
                 <h1 id="mission-setup-title">Choose a problem<br /><em>worth solving.</em></h1>
-                <p className="orientation-lead">The strongest capstones begin with repeated work—not a random app idea. Name something real that costs time, clarity, consistency, or opportunity.</p>
+                <p className="orientation-lead">The strongest capstones begin with repeated work, not a random app idea. Name something real that costs time, clarity, consistency, or opportunity.</p>
                 <div className="orientation-field">
                   <label htmlFor="capstone-goal">What repeated problem will you carry through the academy?</label>
                   <textarea id="capstone-goal" value={profile.capstone_goal} onChange={(event) => updateProfile("capstone_goal", event.target.value)} maxLength={420} placeholder="Example: Every week I spend hours researching AI updates and turning them into useful lessons for my community." required />
@@ -297,7 +298,7 @@ export function ScholarOnboarding({ session, preview, initialName, onComplete, o
               <section aria-labelledby="roadmap-title">
                 <p className="orientation-kicker">Step 04 · Your roadmap</p>
                 <h1 id="roadmap-title">Three levels.<br /><em>One working system.</em></h1>
-                <p className="orientation-lead">Each level changes your responsibility. First you direct the work, then you build the workflow, then you defend the system.</p>
+                <p className="orientation-lead">Each level changes your responsibility. First you direct the work, then you build the workflow, then you defend the system. You must score {cohort.passScore}% or higher on every examination to advance.</p>
 
                 <div className="roadmap-grid">
                   {roadmap.map((level) => (

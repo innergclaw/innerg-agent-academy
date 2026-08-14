@@ -1,6 +1,8 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import comicArtwork from "../assets/innerg-agent-academy-comic.jpg";
+import { checkpointQuestions } from "../data/assessment";
+import { cohort, lessonDate } from "../data/cohort";
 import { lessons, levels, type Lesson } from "../data/curriculum";
 import { getSupabaseClient, isSupabaseConfigured } from "../lib/supabase";
 import { ScholarOnboarding, type ScholarProfile } from "./ScholarOnboarding";
@@ -9,6 +11,21 @@ type ProgressRow = {
   lesson_day: number;
   status: "started" | "completed";
   score: number | null;
+  evidence_text: string | null;
+  evidence_url: string | null;
+  attempts: number;
+};
+
+type MissionSubmission = {
+  evidenceText: string;
+  evidenceUrl: string;
+  score: number;
+  passed: boolean;
+};
+
+type MissionSaveResult = {
+  ok: boolean;
+  message: string;
 };
 
 function Crest({ small = false }: { small?: boolean }) {
@@ -48,32 +65,63 @@ function LoginScreen({ onPreview }: { onPreview: () => void }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+
+  const redirectUrl = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
 
   async function handleAccess(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
+    setAwaitingConfirmation(false);
     if (!supabase) {
       setMessage("Credential access is awaiting the academy database connection.");
       return;
     }
     setBusy(true);
     if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName.trim() } },
+        options: {
+          data: { full_name: fullName.trim() },
+          emailRedirectTo: redirectUrl,
+        },
       });
       setBusy(false);
       if (error) {
         setMessage(error.message.includes("Password") ? error.message : "We could not create your scholar account yet. Check the details and try again.");
         return;
       }
-      setMessage("Your confirmation is on the way. Open the email, confirm your address, then return here and sign in.");
+      if (data.session) {
+        setMessage("Your email is confirmed and your scholar record is ready.");
+        return;
+      }
+      setAwaitingConfirmation(true);
+      setMessage("Check your inbox. Confirm your email to activate your scholar account, then return here and sign in.");
       return;
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-    if (error) setMessage("Those credentials were not recognized. Check your invitation and try again.");
+    if (error) {
+      setMessage(error.message.toLowerCase().includes("confirm")
+        ? "Confirm your email first, then return here to sign in."
+        : "Those credentials were not recognized. Check your email and password, then try again.");
+    }
+  }
+
+  async function handleResend() {
+    if (!supabase || !email) {
+      setMessage("Enter the email used for your scholar account first.");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: redirectUrl },
+    });
+    setBusy(false);
+    setMessage(error ? "The confirmation could not be resent yet. Try again in a moment." : "A fresh confirmation link is on the way.");
   }
 
   async function handleReset() {
@@ -83,7 +131,7 @@ function LoginScreen({ onPreview }: { onPreview: () => void }) {
     }
     setBusy(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: new URL(import.meta.env.BASE_URL, window.location.origin).toString(),
+      redirectTo: redirectUrl,
     });
     setBusy(false);
     setMessage(error ? "We could not send the reset link yet." : "A secure reset link is on the way.");
@@ -101,10 +149,10 @@ function LoginScreen({ onPreview }: { onPreview: () => void }) {
         </div>
 
         <div className="login-copy">
-          <p className="eyebrow">Founding Beta · Cohort 001</p>
+          <p className="eyebrow">Founding Cohort · {cohort.shortRange}</p>
           <h2 id="academy-title">Agent<br /><em>Academy</em></h2>
           <p className="login-thesis">
-            Education for people prepared to direct intelligence—not simply use it.
+            Education for people prepared to direct intelligence, not simply use it.
           </p>
           <div className="institution-note">
             <span>21 days</span><i />
@@ -115,20 +163,20 @@ function LoginScreen({ onPreview }: { onPreview: () => void }) {
 
         <blockquote>
           “The people who can organize intelligence will shape what comes next.”
-          <cite>— InnerG Intel</cite>
+          <cite>InnerG Intel</cite>
         </blockquote>
       </section>
 
       <section className="login-panel" id="academy-access" aria-label="Scholar sign in">
         <div className="login-form-wrap">
           <div className="scholar-seal"><span>01</span></div>
-          <p className="form-kicker">Cohort 001 enrollment</p>
+          <p className="form-kicker">Enrollment open · {cohort.shortRange}</p>
           <h2 id="academy-access-title">{mode === "signup" ? "Claim your seat." : "Welcome back."}</h2>
           <p className="form-intro">{mode === "signup" ? "Create your scholar account. Your orientation begins after email confirmation." : "Use your confirmed scholar credentials to continue your path."}</p>
 
           <div className="access-tabs" aria-label="Choose account access mode">
-            <button type="button" className={mode === "signup" ? "active" : ""} aria-pressed={mode === "signup"} onClick={() => { setMode("signup"); setMessage(""); }}>New scholar</button>
-            <button type="button" className={mode === "login" ? "active" : ""} aria-pressed={mode === "login"} onClick={() => { setMode("login"); setMessage(""); }}>Returning scholar</button>
+            <button type="button" className={mode === "signup" ? "active" : ""} aria-pressed={mode === "signup"} onClick={() => { setMode("signup"); setMessage(""); setAwaitingConfirmation(false); }}>New scholar</button>
+            <button type="button" className={mode === "login" ? "active" : ""} aria-pressed={mode === "login"} onClick={() => { setMode("login"); setMessage(""); setAwaitingConfirmation(false); }}>Returning scholar</button>
           </div>
 
           <form onSubmit={handleAccess}>
@@ -150,12 +198,13 @@ function LoginScreen({ onPreview }: { onPreview: () => void }) {
             </div>
 
             <button className="primary-button" type="submit" disabled={busy}>
-              <span>{busy ? (mode === "signup" ? "Creating your record…" : "Verifying credentials…") : (mode === "signup" ? "Join the founding beta" : "Enter the academy")}</span>
+              <span>{busy ? (mode === "signup" ? "Creating your record…" : "Verifying credentials…") : (mode === "signup" ? "Create scholar account" : "Enter the academy")}</span>
               <b aria-hidden="true">→</b>
             </button>
           </form>
 
           {message && <p className="form-message" role="status">{message}</p>}
+          {awaitingConfirmation && <button className="resend-confirmation" type="button" onClick={handleResend} disabled={busy}>Resend confirmation email</button>}
 
           {import.meta.env.DEV && !isSupabaseConfigured && (
             <div className="preview-access">
@@ -180,7 +229,7 @@ const comicPanels = [
     number: "01",
     title: "The question",
     speaker: "Malik",
-    dialogue: "Everybody keeps saying agents are the future. But what are they actually doing—and who is learning to direct them?",
+    dialogue: "Everybody keeps saying agents are the future. But what are they actually doing, and who is learning to direct them?",
     art: "comic-art-one",
     alt: "Four young Black adults discussing AI around laptops in a neighborhood coffee shop at night.",
   },
@@ -196,7 +245,7 @@ const comicPanels = [
     number: "03",
     title: "The training",
     speaker: "Nia",
-    dialogue: "Operator. Builder. Architect. Twenty-one missions—and every lesson ends with proof we can actually use.",
+    dialogue: "Operator. Builder. Architect. Twenty-one missions. Every lesson ends with proof we can actually use.",
     art: "comic-art-three",
     alt: "The same group collaborating on agent workflow diagrams in a prestigious learning lab.",
   },
@@ -239,27 +288,27 @@ function PublicLanding({ onPreview }: { onPreview: () => void }) {
         <nav aria-label="Public navigation">
           <a href="#origin-story">The story</a>
           <a href="#academy-path">The path</a>
-          <a className="nav-enroll" href="#academy-access">Join the beta</a>
+          <a className="nav-enroll" href="#academy-access">Join the cohort</a>
         </nav>
       </header>
 
       <section className="public-hero" id="top">
         <div className="hero-copy public-reveal">
-          <p className="public-kicker">InnerG Intelligence University · Cohort 001</p>
+          <p className="public-kicker">InnerG Intelligence University · {cohort.shortRange}</p>
           <h1>The future needs<br /><em>orchestrators.</em></h1>
           <p className="hero-deck">A hands-on agent learning experience for people ready to move beyond prompts, build useful systems, and keep human judgment in command.</p>
           <div className="hero-actions">
             <a className="hero-primary" href="#origin-story">Enter the story <span>↓</span></a>
-            <a className="hero-secondary" href="#academy-access">I’m ready to join</a>
+            <a className="hero-secondary" href="#academy-access">Create my account</a>
           </div>
         </div>
-        <aside className="hero-dossier public-reveal" aria-label="Founding beta facts">
-          <span className="dossier-stamp">Founding<br />Beta</span>
+        <aside className="hero-dossier public-reveal" aria-label="Founding cohort facts">
+          <span className="dossier-stamp">Founding<br />Cohort</span>
           <p>Intelligence is becoming infrastructure. This academy prepares you to direct it with clarity, build with evidence, and protect what remains human.</p>
           <dl>
-            <div><dt>Duration</dt><dd>21 days</dd></div>
+            <div><dt>Dates</dt><dd>{cohort.shortRange}</dd></div>
             <div><dt>Levels</dt><dd>03</dd></div>
-            <div><dt>Final proof</dt><dd>1 working system</dd></div>
+            <div><dt>Standard</dt><dd>{cohort.passScore}% to advance</dd></div>
           </dl>
         </aside>
         <div className="hero-scroll-note" aria-hidden="true"><span>Scroll to receive transmission</span><i /></div>
@@ -306,7 +355,7 @@ function PublicLanding({ onPreview }: { onPreview: () => void }) {
                 {index === 1 && <><li>Break work into agent jobs</li><li>Connect tools and permissions</li><li>Test, debug, and recover</li></>}
                 {index === 2 && <><li>Design human approval gates</li><li>Build evaluations and safeguards</li><li>Defend a working capstone</li></>}
               </ul>
-              <small>Days {index * 7 + 1}–{index * 7 + 7}</small>
+              <small>Days {index * 7 + 1} to {index * 7 + 7}</small>
             </article>
           ))}
         </div>
@@ -329,8 +378,20 @@ function PublicLanding({ onPreview }: { onPreview: () => void }) {
   );
 }
 
-function MissionDrawer({ lesson, status, onClose, onComplete }: { lesson: Lesson; status: "available" | "completed" | "locked"; onClose: () => void; onComplete: (day: number) => void }) {
+function MissionDrawer({ lesson, progress, status, onClose, onComplete }: {
+  lesson: Lesson;
+  progress?: ProgressRow;
+  status: "available" | "completed" | "locked";
+  onClose: () => void;
+  onComplete: (day: number, submission: MissionSubmission) => Promise<MissionSaveResult>;
+}) {
   const closeButton = useRef<HTMLButtonElement>(null);
+  const [evidenceText, setEvidenceText] = useState(progress?.evidence_text || "");
+  const [evidenceUrl, setEvidenceUrl] = useState(progress?.evidence_url || "");
+  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState("");
+  const questions = checkpointQuestions[lesson.day] || [];
 
   useEffect(() => {
     closeButton.current?.focus();
@@ -340,6 +401,34 @@ function MissionDrawer({ lesson, status, onClose, onComplete }: { lesson: Lesson
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
+
+  async function submitMission(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setResult("");
+
+    if (evidenceText.trim().length < 30) {
+      setResult("Add at least 30 characters describing what you completed and where the proof can be reviewed.");
+      return;
+    }
+
+    if (questions.length && questions.some((question) => answers[question.id] === undefined)) {
+      setResult("Answer every examination question before submitting.");
+      return;
+    }
+
+    const correct = questions.filter((question) => answers[question.id] === question.answer).length;
+    const score = questions.length ? Math.round((correct / questions.length) * 100) : 100;
+    const passed = score >= cohort.passScore;
+    setBusy(true);
+    const saveResult = await onComplete(lesson.day, {
+      evidenceText: evidenceText.trim(),
+      evidenceUrl: evidenceUrl.trim(),
+      score,
+      passed,
+    });
+    setBusy(false);
+    setResult(saveResult.message);
+  }
 
   return (
     <div className="drawer-backdrop" role="presentation">
@@ -358,20 +447,76 @@ function MissionDrawer({ lesson, status, onClose, onComplete }: { lesson: Lesson
           <p>{lesson.mission}</p>
         </div>
 
-        <dl>
+        <dl className="mission-facts">
           <div><dt>Evidence</dt><dd>{lesson.evidence}</dd></div>
           <div><dt>Study time</dt><dd>{lesson.minutes} minutes</dd></div>
-          <div><dt>Credit</dt><dd>1 academy credit</dd></div>
+          <div><dt>Standard</dt><dd>{lesson.kind === "checkpoint" ? `${cohort.passScore}% to advance` : "Proof required"}</dd></div>
         </dl>
 
         {status === "locked" ? (
           <button className="drawer-action locked" disabled>Complete the previous mission first</button>
         ) : status === "completed" ? (
-          <button className="drawer-action completed" disabled>Mission completed ✓</button>
+          <div className="mission-complete-state">
+            <span>Mission completed</span>
+            <strong>{progress?.score ?? 100}%</strong>
+            <p>{progress?.evidence_text}</p>
+            {progress?.evidence_url && <a href={progress.evidence_url} target="_blank" rel="noreferrer">Open submitted proof ↗</a>}
+          </div>
         ) : (
-          <button className="drawer-action" onClick={() => onComplete(lesson.day)}>Mark mission complete</button>
+          <form className="mission-submission" onSubmit={submitMission}>
+            <div className="submission-heading">
+              <span>Submit your proof</span>
+              <small>Attempt {Math.max(1, (progress?.attempts || 0) + 1)}</small>
+            </div>
+            <label htmlFor={`evidence-${lesson.day}`}>What did you complete?</label>
+            <textarea
+              id={`evidence-${lesson.day}`}
+              value={evidenceText}
+              onChange={(event) => setEvidenceText(event.target.value)}
+              placeholder="Describe the artifact, test, or decision you produced. Include enough detail for a facilitator to review it."
+              minLength={30}
+              maxLength={2000}
+              required
+            />
+            <div className="evidence-count"><span>Minimum 30 characters</span><b>{evidenceText.trim().length}/2000</b></div>
+
+            <label htmlFor={`evidence-url-${lesson.day}`}>Proof link <span>optional</span></label>
+            <input
+              id={`evidence-url-${lesson.day}`}
+              type="url"
+              value={evidenceUrl}
+              onChange={(event) => setEvidenceUrl(event.target.value)}
+              placeholder="https://docs.google.com/..."
+            />
+
+            {questions.length > 0 && (
+              <fieldset className="checkpoint-questions">
+                <legend>Checkpoint examination</legend>
+                <p>All three answers must be correct to reach the {cohort.passScore}% advancement standard.</p>
+                {questions.map((question, questionIndex) => (
+                  <div className="checkpoint-question" key={question.id}>
+                    <strong>{String(questionIndex + 1).padStart(2, "0")}. {question.prompt}</strong>
+                    {question.options.map((option, optionIndex) => (
+                      <label className={answers[question.id] === optionIndex ? "selected" : ""} key={option}>
+                        <input
+                          type="radio"
+                          name={question.id}
+                          checked={answers[question.id] === optionIndex}
+                          onChange={() => setAnswers((current) => ({ ...current, [question.id]: optionIndex }))}
+                        />
+                        <span>{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                ))}
+              </fieldset>
+            )}
+
+            {result && <p className={result.includes("passed") || result.includes("recorded") ? "submission-result passed" : "submission-result"} role="status">{result}</p>}
+            <button className="drawer-action" type="submit" disabled={busy}>{busy ? "Recording your work…" : questions.length ? "Submit examination" : "Complete mission"}</button>
+          </form>
         )}
-        <p className="integrity-note">Beta note: evidence submission and knowledge checks connect in the next build.</p>
+        <p className="integrity-note">Advancement is earned through completed work. Checkpoints require a score of {cohort.passScore}% or higher.</p>
       </section>
     </div>
   );
@@ -408,7 +553,7 @@ function Dashboard({ session, preview, initialProfileName, onExit }: { session: 
     const userId = session.user.id;
     Promise.all([
       supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
-      supabase.from("lesson_progress").select("lesson_day,status,score").eq("user_id", userId),
+      supabase.from("lesson_progress").select("lesson_day,status,score,evidence_text,evidence_url,attempts").eq("user_id", userId),
     ]).then(([profileResult, progressResult]) => {
       if (profileResult.data?.full_name) setProfileName(profileResult.data.full_name);
       else setProfileName(session.user.email?.split("@")[0] || "Scholar");
@@ -421,6 +566,10 @@ function Dashboard({ session, preview, initialProfileName, onExit }: { session: 
   const currentDay = Math.min(completedCount + 1, 21);
   const percent = Math.round((completedCount / 21) * 100);
   const currentLesson = lessons[currentDay - 1];
+  const checkpointScores = progress.filter((row) => [7, 14, 21].includes(row.lesson_day) && row.score !== null);
+  const examAverage = checkpointScores.length
+    ? Math.round(checkpointScores.reduce((sum, row) => sum + (row.score || 0), 0) / checkpointScores.length)
+    : null;
 
   function lessonStatus(day: number): "available" | "completed" | "locked" {
     if (completedDays.has(day)) return "completed";
@@ -428,23 +577,47 @@ function Dashboard({ session, preview, initialProfileName, onExit }: { session: 
     return "locked";
   }
 
-  async function completeMission(day: number) {
+  async function completeMission(day: number, submission: MissionSubmission): Promise<MissionSaveResult> {
+    const existing = progress.find((row) => row.lesson_day === day);
+    const nextRow: ProgressRow = {
+      lesson_day: day,
+      status: submission.passed ? "completed" : "started",
+      score: submission.score,
+      evidence_text: submission.evidenceText,
+      evidence_url: submission.evidenceUrl || null,
+      attempts: (existing?.attempts || 0) + 1,
+    };
+
     if (preview || !supabase || !session?.user) {
-      setProgress((current) => [...current.filter((row) => row.lesson_day !== day), { lesson_day: day, status: "completed", score: null }]);
-      setSelected(null);
-      return;
+      setProgress((current) => [...current.filter((row) => row.lesson_day !== day), nextRow]);
+      return {
+        ok: true,
+        message: submission.passed
+          ? (lessons[day - 1].kind === "checkpoint" ? `${submission.score}% passed. The next level is unlocked.` : "Mission recorded. Your next lesson is unlocked.")
+          : `You scored ${submission.score}%. Review the lesson and retry. You need ${cohort.passScore}% to advance.`,
+      };
     }
     const { error } = await supabase.from("lesson_progress").upsert({
       user_id: session.user.id,
       lesson_day: day,
-      status: "completed",
-      completed_at: new Date().toISOString(),
+      status: nextRow.status,
+      score: nextRow.score,
+      evidence_text: nextRow.evidence_text,
+      evidence_url: nextRow.evidence_url,
+      attempts: nextRow.attempts,
+      completed_at: submission.passed ? new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,lesson_day" });
-    if (!error) {
-      setProgress((current) => [...current.filter((row) => row.lesson_day !== day), { lesson_day: day, status: "completed", score: null }]);
-      setSelected(null);
+    if (error) {
+      return { ok: false, message: "Your work could not be recorded yet. Keep this window open and try once more." };
     }
+    setProgress((current) => [...current.filter((row) => row.lesson_day !== day), nextRow]);
+    return {
+      ok: true,
+      message: submission.passed
+        ? (lessons[day - 1].kind === "checkpoint" ? `${submission.score}% passed. The next level is unlocked.` : "Mission recorded. Your next lesson is unlocked.")
+        : `You scored ${submission.score}%. Review the lesson and retry. You need ${cohort.passScore}% to advance.`,
+    };
   }
 
   async function signOut() {
@@ -475,7 +648,7 @@ function Dashboard({ session, preview, initialProfileName, onExit }: { session: 
 
         <button className="account-button" onClick={signOut}>
           <span>{profileName.slice(0, 1).toUpperCase()}</span>
-          <div><strong>{profileName}</strong><small>{preview ? "Prototype access" : "Cohort 001"}</small></div>
+          <div><strong>{profileName}</strong><small>{preview ? "Prototype access" : cohort.code}</small></div>
           <b>↗</b>
         </button>
       </aside>
@@ -486,12 +659,12 @@ function Dashboard({ session, preview, initialProfileName, onExit }: { session: 
         <header className="academy-header">
           <button className="mobile-menu" onClick={() => setMobileMenu(true)} aria-label="Open navigation"><span /><span /></button>
           <div>
-            <p>InnerG Intelligence University</p>
+            <p>InnerG Intelligence University · {cohort.shortRange}</p>
             <h1>Good day, {profileName}.</h1>
           </div>
           <div className="header-status">
-            <span>Founding Beta</span>
-            <b>Cohort 001</b>
+            <span>Founding Cohort</span>
+            <b>{cohort.code}</b>
           </div>
         </header>
 
@@ -502,7 +675,7 @@ function Dashboard({ session, preview, initialProfileName, onExit }: { session: 
               <h2>{currentLesson.title}</h2>
               <p>{currentLesson.objective}</p>
               <button onClick={() => setSelected(currentLesson)}>
-                Continue Day {String(currentDay).padStart(2, "0")} <span>→</span>
+                Continue Day {String(currentDay).padStart(2, "0")} · {lessonDate(currentDay)} <span>→</span>
               </button>
             </div>
             <div className="mentor-scene">
@@ -519,6 +692,7 @@ function Dashboard({ session, preview, initialProfileName, onExit }: { session: 
             <div className="credit-number"><strong>{String(completedCount).padStart(2, "0")}</strong><span>/ 21<br />credits</span></div>
             <div className="progress-track"><i style={{ width: `${percent}%` }} /></div>
             <p>{percent}% of the founding path complete</p>
+            <div className="score-standard"><span>Checkpoint average</span><strong>{examAverage === null ? "Not scored" : `${examAverage}%`}</strong><small>{cohort.passScore}% required</small></div>
             <div className="mini-marks"><span>Operator</span><span>Builder</span><span>Architect</span></div>
           </article>
         </section>
@@ -527,7 +701,7 @@ function Dashboard({ session, preview, initialProfileName, onExit }: { session: 
           <div className="path-column">
             <div className="section-heading">
               <div><p className="eyebrow">Curriculum</p><h2>The scholar’s path</h2></div>
-              <p>Every mission produces evidence. Complete the work to unlock what follows.</p>
+              <p>Submit evidence for every mission. Score {cohort.passScore}% or higher at each checkpoint to unlock the next level.</p>
             </div>
 
             <div className="learning-path">
@@ -548,7 +722,7 @@ function Dashboard({ session, preview, initialProfileName, onExit }: { session: 
                             <span>{status === "completed" ? "✓" : lesson.kind === "checkpoint" ? "✦" : String(lesson.day).padStart(2, "0")}</span>
                           </button>
                           <div className="node-label">
-                            <small>Day {String(lesson.day).padStart(2, "0")}</small>
+                            <small>Day {String(lesson.day).padStart(2, "0")} · {lessonDate(lesson.day)}</small>
                             <strong>{lesson.title}</strong>
                           </div>
                         </div>
@@ -597,7 +771,7 @@ function Dashboard({ session, preview, initialProfileName, onExit }: { session: 
         </footer>
       </main>
 
-      {selected && <MissionDrawer lesson={selected} status={lessonStatus(selected.day)} onClose={() => setSelected(null)} onComplete={completeMission} />}
+      {selected && <MissionDrawer lesson={selected} progress={progress.find((row) => row.lesson_day === selected.day)} status={lessonStatus(selected.day)} onClose={() => setSelected(null)} onComplete={completeMission} />}
     </div>
   );
 }
