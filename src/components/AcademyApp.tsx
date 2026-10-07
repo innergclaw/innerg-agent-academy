@@ -61,8 +61,6 @@ function Archivist() {
 
 function LoginScreen({ onPreview }: { onPreview: () => void }) {
   const supabase = getSupabaseClient();
-  const mode = "login" as const;
-  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -80,28 +78,6 @@ function LoginScreen({ onPreview }: { onPreview: () => void }) {
       return;
     }
     setBusy(true);
-    if (mode === "signup") {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: fullName.trim() },
-          emailRedirectTo: redirectUrl,
-        },
-      });
-      setBusy(false);
-      if (error) {
-        setMessage(error.message.includes("Password") ? error.message : "We could not create your scholar account yet. Check the details and try again.");
-        return;
-      }
-      if (data.session) {
-        setMessage("Your email is confirmed and your scholar record is ready.");
-        return;
-      }
-      setAwaitingConfirmation(true);
-      setMessage("Check your inbox. Confirm your email to activate your scholar account, then return here and sign in.");
-      return;
-    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) {
@@ -187,25 +163,19 @@ function LoginScreen({ onPreview }: { onPreview: () => void }) {
           </div>
 
           <form onSubmit={handleAccess}>
-            {mode === "signup" && (
-              <>
-                <label htmlFor="academy-name">Full name</label>
-                <input id="academy-name" type="text" autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Your name" minLength={2} required />
-              </>
-            )}
             <label htmlFor="academy-email">Scholar email</label>
             <input id="academy-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@email.com" required />
 
             <label htmlFor="academy-password">Password</label>
-            <input id="academy-password" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === "signup" ? "Create at least 8 characters" : "Your private password"} minLength={8} required />
+            <input id="academy-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Your private password" minLength={8} required />
 
             <div className="password-row">
-              <span>{mode === "signup" ? "Email confirmation required" : "Confirmed scholar access"}</span>
-              {mode === "login" && <button type="button" onClick={handleReset}>Forgot password?</button>}
+              <span>Confirmed scholar access</span>
+              <button type="button" onClick={handleReset}>Forgot password?</button>
             </div>
 
             <button className="primary-button" type="submit" disabled={busy}>
-              <span>{busy ? (mode === "signup" ? "Creating your record…" : "Verifying credentials…") : (mode === "signup" ? "Create scholar account" : "Enter the academy")}</span>
+              <span>{busy ? "Verifying credentials…" : "Enter the academy"}</span>
               <b aria-hidden="true">→</b>
             </button>
           </form>
