@@ -943,6 +943,16 @@ button:active:not(:disabled) { transform: scale(.96); }
   .drawer-heading { padding-right: 52px; }
 }
 
+.id-gate { min-height: 92px; display: grid; align-content: center; gap: 4px; margin: 8px 0 22px; padding: 16px 18px; color: #fffaf3; text-decoration: none; background: #7c1e1a; border-radius: 8px; transition: transform 180ms ease, background-color 180ms ease; }
+.id-gate span { font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.id-gate strong { font-size: 22px; line-height: 1.1; }
+.id-gate small { color: #f0d7c4; }
+.returning-note { margin-top: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .id-gate:hover { transform: translateY(-2px); background: #641814; }
+}
 @media (prefers-reduced-motion: reduce) {
+  .id-gate { transition: none; }
+  .id-gate:hover { transform: none; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

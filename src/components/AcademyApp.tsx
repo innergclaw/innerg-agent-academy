@@ -2,10 +2,12 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import comicArtwork from "../assets/innerg-agent-academy-comic.jpg";
 import { checkpointQuestions } from "../data/assessment";
-import { cohort, lessonDate } from "../data/cohort";
 import { lessons, levels, type Lesson } from "../data/curriculum";
+import { cohort, lessonDate } from "../data/cohort";
 import { getSupabaseClient, isSupabaseConfigured } from "../lib/supabase";
 import { ScholarOnboarding, type ScholarProfile } from "./ScholarOnboarding";
+
+const INNERG_ID_URL = "https://nasirr.innergintel.org/innergid/";
 
 type ProgressRow = {
   lesson_day: number;
@@ -59,7 +61,7 @@ function Archivist() {
 
 function LoginScreen({ onPreview }: { onPreview: () => void }) {
   const supabase = getSupabaseClient();
-  const [mode, setMode] = useState<"signup" | "login">("signup");
+  const mode = "login" as const;
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -170,13 +172,18 @@ function LoginScreen({ onPreview }: { onPreview: () => void }) {
       <section className="login-panel" id="academy-access" aria-label="Scholar sign in">
         <div className="login-form-wrap">
           <div className="scholar-seal"><span>01</span></div>
-          <p className="form-kicker">Enrollment open · {cohort.shortRange}</p>
-          <h2 id="academy-access-title">{mode === "signup" ? "Claim your seat." : "Welcome back."}</h2>
-          <p className="form-intro">{mode === "signup" ? "Create your scholar account. Your orientation begins after email confirmation." : "Use your confirmed scholar credentials to continue your path."}</p>
+          <p className="form-kicker">Student access · INNERG ID</p>
+          <h2 id="academy-access-title">Get your INNERG ID.</h2>
+          <p className="form-intro">An INNERG ID is how you become a student. The founding window was {cohort.shortRange}. New students start with the ID, then enter the academy.</p>
+          <a className="id-gate" href={INNERG_ID_URL}>
+            <span>Become a student</span>
+            <strong>Get your INNERG ID</strong>
+            <small>Membership, research desk, and academy access</small>
+          </a>
+          <p className="form-intro returning-note">Already confirmed a scholar account? Sign in below.</p>
 
-          <div className="access-tabs" aria-label="Choose account access mode">
-            <button type="button" className={mode === "signup" ? "active" : ""} aria-pressed={mode === "signup"} onClick={() => { setMode("signup"); setMessage(""); setAwaitingConfirmation(false); }}>New scholar</button>
-            <button type="button" className={mode === "login" ? "active" : ""} aria-pressed={mode === "login"} onClick={() => { setMode("login"); setMessage(""); setAwaitingConfirmation(false); }}>Returning scholar</button>
+          <div className="access-tabs" aria-label="Returning scholar access">
+            <button type="button" className="active" aria-pressed="true">Returning scholar</button>
           </div>
 
           <form onSubmit={handleAccess}>
@@ -288,18 +295,18 @@ function PublicLanding({ onPreview }: { onPreview: () => void }) {
         <nav aria-label="Public navigation">
           <a href="#origin-story">The story</a>
           <a href="#academy-path">The path</a>
-          <a className="nav-enroll" href="#academy-access">Join the cohort</a>
+          <a className="nav-enroll" href={INNERG_ID_URL}>Get your INNERG ID</a>
         </nav>
       </header>
 
       <section className="public-hero" id="top">
         <div className="hero-copy public-reveal">
-          <p className="public-kicker">InnerG Intelligence University · {cohort.shortRange}</p>
+          <p className="public-kicker">InnerG Intelligence University · hands-on trade skill</p>
           <h1>The future needs<br /><em>orchestrators.</em></h1>
-          <p className="hero-deck">A hands-on agent learning experience for people ready to move beyond prompts, build useful systems, and keep human judgment in command.</p>
+          <p className="hero-deck">A hands-on class for creatives and builders learning to direct super intelligence. Not a prompt demo. A skill you practice.</p>
           <div className="hero-actions">
-            <a className="hero-primary" href="#origin-story">Enter the story <span>↓</span></a>
-            <a className="hero-secondary" href="#academy-access">Create my account</a>
+            <a className="hero-primary" href={INNERG_ID_URL}>Get your INNERG ID <span>→</span></a>
+            <a className="hero-secondary" href="#academy-path">See the training path</a>
           </div>
         </div>
         <aside className="hero-dossier public-reveal" aria-label="Founding cohort facts">
